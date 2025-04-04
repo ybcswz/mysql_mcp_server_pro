@@ -1,10 +1,10 @@
 # mcp_mysql_server
 
 #### 介绍
-基于 https://github.com/designcomputer/mysql_mcp_server 修改
-新增 支持多sql执行，以“;”分隔。
-新增 根据表注释可以查询出对于的数据库表名，表字段
-新增 中文字段转拼音
+- 基于 https://github.com/designcomputer/mysql_mcp_server 修改
+- 新增 支持多sql执行，以“;”分隔。
+- 新增 根据表注释可以查询出对于的数据库表名，表字段
+- 新增 中文字段转拼音
 
 
 #### 使用说明
