@@ -1,17 +1,19 @@
 # mcp_mysql_server
 
-#### 介绍
-- 基于 https://github.com/designcomputer/mysql_mcp_server 修改
-- 新增 支持多sql执行，以“;”分隔。 
-- 新增 根据表注释可以查询出对于的数据库表名，表字段
-- 新增 中文字段转拼音
+## Introduction
+- Added support for STDIO mode and SSE mode
+- Added support for multiple SQL execution, separated by ";"
+- Added ability to query database table names and fields based on table comments
+- Added Chinese field to pinyin conversion
 
-- Added support for multiple SQL executions separated by ';'.
-- Add the ability to query database table names and fields based on table annotations
-- Add Chinese field to Pinyin conversion
+## Usage Instructions
 
-#### 使用说明
-mcp json 如下
+### STDIO Mode
+- Use src/studio_mcp/operatemysql.py
+
+Add the following content to your mcp client tools, such as cursor, cline, etc.
+
+mcp json as follows:
 ```
 {
   "mcpServers": {
@@ -21,7 +23,7 @@ mcp json 如下
         "command": "uv",
         "args": [
           "--directory",
-          "G:\\python\\mcp_1",  
+          "G:\\python\\mysql_mcp\\src\\studio_mcp",  # Here you need to replace with your project path.
           "run",
           "operatemysql.py"
         ],
@@ -36,24 +38,58 @@ mcp json 如下
   }
 }    
 ```
+### SSE Mode
+- Use src/sse_mcp/operatemysql.py
+- Use uv to start the service
 
+Add the following content to your mcp client tools, such as cursor, cline, etc.
 
-prompt格式如下
+mcp json as follows:
 ```
-# 任务
-   创建一张组织架构表，表结构如下：部门名称，部门编号，父部门，是否有效。
-# 要求
- - 表名用t_admin_rms_zzjg,
- - 字段要求：字符串类型使用'varchar(255)'，整数类型使用'int',浮点数类型使用'float'，日期和时间类型使用'datetime'，布尔类型使用'boolean'，文本类型使用'text'，大文本类型使用'longtext'，大整数类型使用'bigint'，大浮点数类型使用'double。
- - 表头需要加入主键字段，序号 XH varchar(255)
- - 表最后需加入固定字段：创建人-CJR varchar(50)，创建时间-CJSJ datetime，修改人-XGR varchar(50)，修改时间-XGSJ datetime。
- - 字段命名使用工具返回内容作为字段命名
- - 常用字段需要添加索引
- - 每个字段需要添加注释，表注释也需要
- - 创建完成后生成5条真实数据
+{
+  "mcpServers": {
+    "operateMysql": {
+      "name": "operateMysql",
+      "description": "",
+      "isActive": true,
+      "baseUrl": "http://localhost:9000/sse"
+    }
+  }
+}
 ```
 
-#### 效果图
+Modify the .env file content to modify the database connection information to your database connection information
+```
+# MySQL database configuration
+MYSQL_HOST=192.168.xxx.xxx
+MYSQL_PORT=3306
+MYSQL_USER=root
+MYSQL_PASSWORD=root
+MYSQL_DATABASE=a_llm
+```
+
+Start command
+```
+uv run operatemysql.py
+```
+
+## Example
+prompt format as follows
+```
+# Task
+    Create an organization structure table, table structure as follows: department name, department number, parent department, whether effective.
+# Requirements
+ - Table name use t_admin_rms_zzjg,
+ - Field requirements: string type uses 'varchar(255)', integer type uses 'int', float type uses 'float', date and time type uses 'datetime', boolean type uses 'boolean', text type uses 'text', large text type uses 'longtext', large integer type uses 'bigint', large float type uses 'double'.
+ - Table header needs to add primary key field, serial number XH varchar(255)
+ - Table last needs to add fixed fields: creator-CJR varchar(50), creation time-CJSJ datetime, modifier-XGR varchar(50), modification time-XGSJ datetime.
+ - Field naming uses tool return content as field naming
+ - Common fields need to add indexes
+ - Each field needs to add comments, table comments need to be added
+ - Generate 5 real data after creation
+```
+
+#### Effect picture
 ![image](https://github.com/user-attachments/assets/e95dc104-4e26-426a-acd4-d3b15ad654f5)
 
 ![image](https://github.com/user-attachments/assets/618f610e-5188-4c40-aeaa-cfbe7b0762c3)
