@@ -4,6 +4,7 @@
 - Added support for STDIO mode and SSE mode
 - Added support for multiple SQL execution, separated by ";"
 - Added ability to query database table names and fields based on table comments
+- Added SQL Execution Plan Analysis
 - Added Chinese field to pinyin conversion
 
 ## Usage Instructions

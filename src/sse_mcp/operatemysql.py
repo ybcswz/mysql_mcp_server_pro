@@ -114,7 +114,7 @@ def execute_sql(query : str) -> list[TextContent]:
                             results.append("\n".join(result))
 
                         # 处理SELECT查询
-                        elif statement.strip().upper().startswith("SELECT"):
+                        elif statement.strip().upper().startswith("SELECT") or statement.strip().upper().startswith("EXPLAIN"):
                             # 获取列名
                             columns = [desc[0] for desc in cursor.description]
                             # 获取所有行数据
@@ -140,16 +140,63 @@ def execute_sql(query : str) -> list[TextContent]:
         return [TextContent(type="text", text=f"执行查询时出错: {str(e)}")]
 
 def get_table_name(text : str) -> list[TextContent]:
+    """根据表的中文注释搜索数据库中的表名
+
+    参数:
+        text (str): 要搜索的表中文注释关键词
+
+    返回:
+        list[TextContent]: 包含查询结果的TextContent列表
+        - 返回匹配的表名、数据库名和表注释信息
+        - 结果以CSV格式返回，包含列名和数据
+    """
     config = get_db_config()
     sql = "SELECT TABLE_SCHEMA, TABLE_NAME, TABLE_COMMENT "
     sql += f"FROM information_schema.TABLES WHERE TABLE_SCHEMA = '{config["database"]}' AND TABLE_COMMENT LIKE '%{text}%';"
     return execute_sql(sql)
 
 def get_table_desc(text : str) -> list[TextContent]:
+    """获取指定表的字段结构信息
+
+    参数:
+        text (str): 要查询的表名，多个表名以逗号分隔
+
+    返回:
+        list[TextContent]: 包含查询结果的TextContent列表
+        - 返回表的字段名、字段注释等信息
+        - 结果按表名和字段顺序排序
+        - 结果以CSV格式返回，包含列名和数据
+    """
     config = get_db_config()
-    sql = "SELECT COLUMN_NAME,COLUMN_COMMENT "
+    # 将输入的表名按逗号分割成列表
+    table_names = [name.strip() for name in text.split(',')]
+    # 构建IN条件
+    table_condition = "','".join(table_names)
+    sql = "SELECT TABLE_NAME, COLUMN_NAME, COLUMN_COMMENT "
     sql += f"FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = '{config["database"]}' "
-    sql += f"AND TABLE_NAME = '{text}';"
+    sql += f"AND TABLE_NAME IN ('{table_condition}') ORDER BY TABLE_NAME, ORDINAL_POSITION;"
+    return execute_sql(sql)
+
+def get_table_index(text : str) -> list[TextContent]:
+    """获取指定表的索引信息
+
+    参数:
+        text (str): 要查询的表名，多个表名以逗号分隔
+
+    返回:
+        list[TextContent]: 包含查询结果的TextContent列表
+        - 返回表的索引名、索引字段、索引类型等信息
+        - 结果按表名、索引名和索引顺序排序
+        - 结果以CSV格式返回，包含列名和数据
+    """
+    config = get_db_config()
+    # 将输入的表名按逗号分割成列表
+    table_names = [name.strip() for name in text.split(',')]
+    # 构建IN条件
+    table_condition = "','".join(table_names)
+    sql = "SELECT TABLE_NAME, INDEX_NAME, COLUMN_NAME, SEQ_IN_INDEX, NON_UNIQUE, INDEX_TYPE "
+    sql += f"FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = '{config["database"]}' "
+    sql += f"AND TABLE_NAME IN ('{table_condition}') ORDER BY TABLE_NAME, INDEX_NAME, SEQ_IN_INDEX;"
     return execute_sql(sql)
 
 # 初始化服务器
@@ -186,7 +233,7 @@ async def list_tools() -> list[Tool]:
                 "properties": {
                     "text": {
                         "type": "string",
-                        "description": "要获取拼音首字母的汉字文本，以','分隔"
+                        "description": "要获取拼音首字母的汉字文本，以“,”分隔"
                     }
                 },
                 "required": ["text"]
@@ -208,7 +255,7 @@ async def list_tools() -> list[Tool]:
         ),
         Tool(
             name="get_table_desc",
-            description="根据表名搜索数据库中对应的表结构",
+            description="根据表名搜索数据库中对应的表结构,支持多表查询",
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -220,6 +267,20 @@ async def list_tools() -> list[Tool]:
                 "required": ["text"]
             }
         ),
+        Tool(
+            name="get_table_index",
+            description="根据表名搜索数据库中对应的表索引,支持多表查询",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "text": {
+                        "type": "string",
+                        "description": "要搜索的表名"
+                    }
+                },
+                "required": ["text"]
+            }
+        )
     ]
 
 @app.call_tool()
@@ -238,13 +299,18 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
     elif name == "get_table_name":
         text = arguments.get("text")
         if not text:
-            raise ValueError("缺少文本")
+            raise ValueError("缺少表信息")
         return get_table_name(text)
     elif name == "get_table_desc":
         text = arguments.get("text")
         if not text:
-            raise ValueError("缺少文本")
+            raise ValueError("缺少表信息")
         return get_table_desc(text)
+    elif name == "get_table_index":
+        text = arguments.get("text")
+        if not text:
+            raise ValueError("缺少表信息")
+        return get_table_index(text)
 
     raise ValueError(f"未知的工具: {name}")
 
