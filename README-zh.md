@@ -72,6 +72,10 @@ MYSQL_DATABASE=a_llm
 
 启动命令
 ```
+# 下载依赖
+uv sync
+
+# 启动
 uv run operatemysql.py
 ```
 

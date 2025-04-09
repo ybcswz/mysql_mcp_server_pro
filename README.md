@@ -71,6 +71,10 @@ MYSQL_DATABASE=a_llm
 
 Start command
 ```
+# Download dependencies
+uv sync
+
+# run 
 uv run operatemysql.py
 ```
 
