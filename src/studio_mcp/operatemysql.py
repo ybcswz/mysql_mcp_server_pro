@@ -143,7 +143,7 @@ def get_table_name(text : str) -> list[TextContent]:
     """
     config = get_db_config()
     sql = "SELECT TABLE_SCHEMA, TABLE_NAME, TABLE_COMMENT "
-    sql += f"FROM information_schema.TABLES WHERE TABLE_SCHEMA = '{config["database"]}' AND TABLE_COMMENT LIKE '%{text}%';"
+    sql += f"FROM information_schema.TABLES WHERE TABLE_SCHEMA = '{config['database']}' AND TABLE_COMMENT LIKE '%{text}%';"
     return execute_sql(sql)
 
 def get_table_desc(text : str) -> list[TextContent]:
@@ -164,7 +164,7 @@ def get_table_desc(text : str) -> list[TextContent]:
     # 构建IN条件
     table_condition = "','".join(table_names)
     sql = "SELECT TABLE_NAME, COLUMN_NAME, COLUMN_COMMENT "
-    sql += f"FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = '{config["database"]}' "
+    sql += f"FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = '{config['database']}' "
     sql += f"AND TABLE_NAME IN ('{table_condition}') ORDER BY TABLE_NAME, ORDINAL_POSITION;"
     return execute_sql(sql)
 
@@ -186,7 +186,7 @@ def get_table_index(text : str) -> list[TextContent]:
     # 构建IN条件
     table_condition = "','".join(table_names)
     sql = "SELECT TABLE_NAME, INDEX_NAME, COLUMN_NAME, SEQ_IN_INDEX, NON_UNIQUE, INDEX_TYPE "
-    sql += f"FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = '{config["database"]}' "
+    sql += f"FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = '{config['database']}' "
     sql += f"AND TABLE_NAME IN ('{table_condition}') ORDER BY TABLE_NAME, INDEX_NAME, SEQ_IN_INDEX;"
     return execute_sql(sql)
 
