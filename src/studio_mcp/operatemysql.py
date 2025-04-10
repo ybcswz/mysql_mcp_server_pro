@@ -65,7 +65,8 @@ def get_chinese_initials(text) -> list[TextContent]:
     # 用逗号连接所有结果
     return [TextContent(type="text", text=','.join(initials))]
 
-def execute_sql(query : str) -> list[TextContent]:
+
+def execute_sql(query: str) -> list[TextContent]:
     """执行SQL查询语句
 
     参数:
@@ -85,7 +86,6 @@ def execute_sql(query : str) -> list[TextContent]:
     try:
         with connect(**config) as conn:
             with conn.cursor() as cursor:
-                # 处理多条SQL语句
                 statements = [stmt.strip() for stmt in query.split(';') if stmt.strip()]
                 results = []
 
@@ -93,36 +93,29 @@ def execute_sql(query : str) -> list[TextContent]:
                     try:
                         cursor.execute(statement)
 
-                        # 特殊处理SHOW TABLES命令
-                        if statement.strip().upper().startswith("SHOW TABLES"):
-                            # 获取所有表名
-                            tables = cursor.fetchall()
-                            # 创建表头，格式为 "Tables_in_数据库名"
-                            result = ["Tables_in_" + config["database"]]  # 表头
-                            # 将表名添加到结果列表中
-                            result.extend([table[0] for table in tables])
-                            # 将结果转换为字符串并添加到最终结果列表中
-                            results.append("\n".join(result))
-
-                        # 处理SELECT查询
-                        elif statement.strip().upper().startswith("SELECT") or statement.strip().upper().startswith("EXPLAIN"):
-                            # 获取列名
+                        # 检查语句是否返回了结果集 (SELECT, SHOW, EXPLAIN, etc.)
+                        if cursor.description:
                             columns = [desc[0] for desc in cursor.description]
-                            # 获取所有行数据
                             rows = cursor.fetchall()
-                            # 将每行数据转换为逗号分隔的字符串
-                            result = [",".join(map(str, row)) for row in rows]
-                            # 将列名和数据合并为CSV格式
-                            results.append("\n".join([",".join(columns)] + result))
 
-                        # 处理非SELECT查询
+                            # 将每一行的数据转换为字符串，特殊处理None值
+                            formatted_rows = []
+                            for row in rows:
+                                formatted_row = ["NULL" if value is None else str(value) for value in row]
+                                formatted_rows.append(",".join(formatted_row))
+
+                            # 将列名和数据合并为CSV格式
+                            results.append("\n".join([",".join(columns)] + formatted_rows))
+
+                        # 如果语句没有返回结果集 (INSERT, UPDATE, DELETE, etc.)
                         else:
-                            conn.commit()
+                            conn.commit()  # 只有在非查询语句时才提交
                             results.append(f"查询执行成功。影响行数: {cursor.rowcount}")
 
                     except Error as stmt_error:
                         # 单条语句执行出错时，记录错误并继续执行
-                        results.append(f"执行语句出错: {str(stmt_error)}")
+                        results.append(f"执行语句 '{statement}' 出错: {str(stmt_error)}")
+                        # 可以在这里选择是否继续执行后续语句，目前是继续
 
                 return [TextContent(type="text", text="\n---\n".join(results))]
 
@@ -188,6 +181,29 @@ def get_table_index(text : str) -> list[TextContent]:
     sql = "SELECT TABLE_NAME, INDEX_NAME, COLUMN_NAME, SEQ_IN_INDEX, NON_UNIQUE, INDEX_TYPE "
     sql += f"FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = '{config['database']}' "
     sql += f"AND TABLE_NAME IN ('{table_condition}') ORDER BY TABLE_NAME, INDEX_NAME, SEQ_IN_INDEX;"
+    return execute_sql(sql)
+
+def get_lock_tables() -> list[TextContent]:
+    sql = "SELECT p2.`HOST` 被阻塞方host,  p2.`USER` 被阻塞方用户, r.trx_id 被阻塞方事务id, "
+    sql += "r.trx_mysql_thread_id 被阻塞方线程号,TIMESTAMPDIFF(SECOND, r.trx_wait_started, CURRENT_TIMESTAMP) 等待时间, "
+    sql += "r.trx_query 被阻塞的查询, l.lock_table 阻塞方锁住的表, m.`lock_mode` 被阻塞方的锁模式, "
+    sql += "m.`lock_type` '被阻塞方的锁类型(表锁还是行锁)', m.`lock_index` 被阻塞方锁住的索引, "
+    sql += "m.`lock_space` 被阻塞方锁对象的space_id, m.lock_page 被阻塞方事务锁定页的数量, "
+    sql += "m.lock_rec 被阻塞方事务锁定记录的数量, m.lock_data 被阻塞方事务锁定记录的主键值, "
+    sql += "p.`HOST` 阻塞方主机, p.`USER` 阻塞方用户, b.trx_id 阻塞方事务id,b.trx_mysql_thread_id 阻塞方线程号, "
+    sql += "b.trx_query 阻塞方查询, l.`lock_mode` 阻塞方的锁模式, l.`lock_type` '阻塞方的锁类型(表锁还是行锁)',"
+    sql += "l.`lock_index` 阻塞方锁住的索引,l.`lock_space` 阻塞方锁对象的space_id,l.lock_page 阻塞方事务锁定页的数量,"
+    sql += "l.lock_rec 阻塞方事务锁定行的数量,  l.lock_data 阻塞方事务锁定记录的主键值,"
+    sql += "IF(p.COMMAND = 'Sleep', CONCAT(p.TIME, ' 秒'), 0) 阻塞方事务空闲的时间 "
+    sql += "FROM information_schema.INNODB_LOCK_WAITS w "
+    sql += "INNER JOIN information_schema.INNODB_TRX b ON b.trx_id = w.blocking_trx_id "
+    sql += "INNER JOIN information_schema.INNODB_TRX r ON r.trx_id = w.requesting_trx_id "
+    sql += "INNER JOIN information_schema.INNODB_LOCKS l ON w.blocking_lock_id = l.lock_id AND l.`lock_trx_id` = b.`trx_id` "
+    sql += "INNER JOIN information_schema.INNODB_LOCKS m ON m.`lock_id` = w.`requested_lock_id` AND m.`lock_trx_id` = r.`trx_id` "
+    sql += "INNER JOIN information_schema.PROCESSLIST p ON p.ID = b.trx_mysql_thread_id "
+    sql += "INNER JOIN information_schema.PROCESSLIST p2 ON p2.ID = r.trx_mysql_thread_id "
+    sql += "ORDER BY 等待时间 DESC;"
+
     return execute_sql(sql)
 
 # 初始化服务器
@@ -270,7 +286,17 @@ async def list_tools() -> list[Tool]:
                 },
                 "required": ["text"]
             }
-        )
+        ),
+        Tool(
+            name="get_lock_tables",
+            description="获取当前mysql服务器InnoDB 的行级锁",
+            inputSchema={
+                "type": "object",
+                "properties": {
+
+                }
+            }
+        ),
     ]
 
 @app.call_tool()
@@ -301,6 +327,8 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         if not text:
             raise ValueError("缺少表信息")
         return get_table_index(text)
+    elif name == "get_lock_tables":
+        return get_lock_tables()
 
     raise ValueError(f"未知的工具: {name}")
 
