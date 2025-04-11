@@ -1,47 +1,22 @@
+[![简体中文](https://img.shields.io/badge/简体中文-点击查看-orange)](README-zh.md)
+[![English](https://img.shields.io/badge/English-Click-yellow)](README.md)
+
 # mcp_mysql_server
 
 ## 介绍
-- 新增 支持 STDIO 方式 与 SSE 方式
-- 新增 支持多sql执行，以“;”分隔。 
-- 新增 根据表注释可以查询出对于的数据库表名，表字段
-- 新增 sql执行计划分析
-- 新增 中文字段转拼音.
+mcp_mysql_server_pro 不仅止于mysql的增删改查功能，还包含了数据库异常分析能力，且便于开发者们进行个性化的工具扩展
 
+- 支持 STDIO 方式 与 SSE 方式
+- 支持 支持多sql执行，以“;”分隔。 
+- 支持 根据表注释可以查询出对于的数据库表名，表字段
+- 支持 sql执行计划分析
+- 支持 中文字段转拼音.
+- 支持 锁表分析
 
 ## 使用说明
 
-### STDIO 方式 
-- 使用 src/studio_mcp/operatemysql.py 
-
-将以下内容添加到你的 mcp client 工具中，例如cursor、cline等
-
-mcp json 如下
-```
-{
-  "mcpServers": {
-      "operateMysql": {
-        "isActive": true,
-        "name": "operateMysql",
-        "command": "uv",
-        "args": [
-          "--directory",
-          "G:\\python\\mysql_mcp\\src\\studio_mcp",  # 这里需要替换为你的项目路径
-          "run",
-          "operatemysql.py"
-        ],
-        "env": {
-          "MYSQL_HOST": "192.168.xxx.xxx",
-          "MYSQL_PORT": "3306",
-          "MYSQL_USER": "root",
-          "MYSQL_PASSWORD": "root",
-          "MYSQL_DATABASE": "a_llm"
-       }
-    }
-  }
-}    
-```
 ### SSE 方式
-- 使用 src/sse_mcp/operatemysql.py
+
 - 使用 uv 启动服务
 
 将以下内容添加到你的 mcp client 工具中，例如cursor、cline等
@@ -76,11 +51,48 @@ MYSQL_DATABASE=a_llm
 uv sync
 
 # 启动
-uv run operatemysql.py
+uv run server.py
 ```
 
+### STDIO 方式 
+
+将以下内容添加到你的 mcp client 工具中，例如cursor、cline等
+
+mcp json 如下
+```
+{
+  "mcpServers": {
+      "operateMysql": {
+        "isActive": true,
+        "name": "operateMysql",
+        "command": "uv",
+        "args": [
+          "--directory",
+          "G:\\python\\mysql_mcp\\src",  # 这里需要替换为你的项目路径
+          "run",
+          "operatemysql.py",
+          "--stdio"
+        ],
+        "env": {
+          "MYSQL_HOST": "192.168.xxx.xxx",
+          "MYSQL_PORT": "3306",
+          "MYSQL_USER": "root",
+          "MYSQL_PASSWORD": "root",
+          "MYSQL_DATABASE": "a_llm"
+       }
+    }
+  }
+}    
+```
+
+## 个性扩展工具
+1. 在handles包中新增工具类，继承BaseHandler，实现get_tool_description、run_tool方法
+
+2. 在__init__.py中引入新工具即可在server中调用
+
+
 ## 示例
-prompt格式如下
+1. 创建新表以及插入数据 prompt格式如下
 ```
 # 任务
    创建一张组织架构表，表结构如下：部门名称，部门编号，父部门，是否有效。
@@ -95,23 +107,22 @@ prompt格式如下
  - 创建完成后生成5条真实数据
 ```
 
-#### 效果图
-![image](https://github.com/user-attachments/assets/e95dc104-4e26-426a-acd4-d3b15ad654f5)
+2. 根据表注释查询数据 prompt如下
+```
+查询用户信息表中张三的数据
+```
 
-![image](https://github.com/user-attachments/assets/618f610e-5188-4c40-aeaa-cfbe7b0762c3)
+3. 分析慢sql prompt如下
+```
+select * from t_jcsjzx_hjkq_cd_xsz_sk xsz
+left join t_jcsjzx_hjkq_jcd jcd on jcd.cddm = xsz.cddm 
+根据当前的索引情况，查看执行计划提出优化意见，以markdown格式输出，sql相关的表索引情况、执行情况，优化意见
+```
 
-![image](https://github.com/user-attachments/assets/4c91c8d1-4a42-41f4-8fe2-e46df0f08daa)
-
-![image](https://github.com/user-attachments/assets/328a2cce-11ac-48f0-818a-1f1d231d7013)
-
-![image](https://github.com/user-attachments/assets/db265aaf-a3e9-41b4-bf7a-235ba34ed4cd)
-
-![image](https://github.com/user-attachments/assets/c67e2948-78af-4c8a-b1ff-6a7172bbb6f8)
-
-![image](https://github.com/user-attachments/assets/9f6215e6-51fc-4e32-9d21-3e19abfa4bc6)
-
-![image](https://github.com/user-attachments/assets/f10fc2b7-ac41-4f2c-a163-c7683bf2fabe)
-
+4. 分析sql卡死问题 prompt如下
+```
+update t_admin_rms_zzjg set sfyx = '0' where xh = '1' 卡死了，请分析原因
+```
 
 
 

@@ -1,46 +1,22 @@
+[![简体中文](https://img.shields.io/badge/简体中文-点击查看-orange)](README-zh.md)
+[![English](https://img.shields.io/badge/English-Click-yellow)](README.md)
+
 # mcp_mysql_server
 
 ## Introduction
-- Added support for STDIO mode and SSE mode
-- Added support for multiple SQL execution, separated by ";"
-- Added ability to query database table names and fields based on table comments
-- Added SQL Execution Plan Analysis
-- Added Chinese field to pinyin conversion
+mcp_mysql_server_pro is not just about MySQL CRUD operations, but also includes database anomaly analysis capabilities and makes it easy for developers to extend with custom tools.
+
+- Supports both STDIO and SSE modes
+- Supports multiple SQL execution, separated by ";"
+- Supports querying database table names and fields based on table comments
+- Supports SQL execution plan analysis
+- Supports Chinese field to pinyin conversion
+- Supports table lock analysis
 
 ## Usage Instructions
 
-### STDIO Mode
-- Use src/studio_mcp/operatemysql.py
-
-Add the following content to your mcp client tools, such as cursor, cline, etc.
-
-mcp json as follows:
-```
-{
-  "mcpServers": {
-      "operateMysql": {
-        "isActive": true,
-        "name": "operateMysql",
-        "command": "uv",
-        "args": [
-          "--directory",
-          "G:\\python\\mysql_mcp\\src\\studio_mcp",  # Here you need to replace with your project path.
-          "run",
-          "operatemysql.py"
-        ],
-        "env": {
-          "MYSQL_HOST": "192.168.xxx.xxx",
-          "MYSQL_PORT": "3306",
-          "MYSQL_USER": "root",
-          "MYSQL_PASSWORD": "root",
-          "MYSQL_DATABASE": "a_llm"
-       }
-    }
-  }
-}    
-```
 ### SSE Mode
-- Use src/sse_mcp/operatemysql.py
+
 - Use uv to start the service
 
 Add the following content to your mcp client tools, such as cursor, cline, etc.
@@ -59,9 +35,9 @@ mcp json as follows:
 }
 ```
 
-Modify the .env file content to modify the database connection information to your database connection information
+Modify the .env file content to update the database connection information with your database details:
 ```
-# MySQL database configuration
+# MySQL Database Configuration
 MYSQL_HOST=192.168.xxx.xxx
 MYSQL_PORT=3306
 MYSQL_USER=root
@@ -69,48 +45,80 @@ MYSQL_PASSWORD=root
 MYSQL_DATABASE=a_llm
 ```
 
-Start command
+Start commands:
 ```
 # Download dependencies
 uv sync
 
-# run 
-uv run operatemysql.py
+# Start
+uv run server.py
 ```
 
-## Example
-prompt format as follows
+### STDIO Mode
+
+Add the following content to your mcp client tools, such as cursor, cline, etc.
+
+mcp json as follows:
+```
+{
+  "mcpServers": {
+      "operateMysql": {
+        "isActive": true,
+        "name": "operateMysql",
+        "command": "uv",
+        "args": [
+          "--directory",
+          "G:\\python\\mysql_mcp\\src",  # Replace this with your project path
+          "run",
+          "operatemysql.py",
+          "--stdio"
+        ],
+        "env": {
+          "MYSQL_HOST": "192.168.xxx.xxx",
+          "MYSQL_PORT": "3306",
+          "MYSQL_USER": "root",
+          "MYSQL_PASSWORD": "root",
+          "MYSQL_DATABASE": "a_llm"
+       }
+    }
+  }
+}    
+```
+
+## Custom Tool Extensions
+1. Add a new tool class in the handles package, inherit from BaseHandler, and implement get_tool_description and run_tool methods
+
+2. Import the new tool in __init__.py to make it available in the server
+
+## Examples
+1. Create a new table and insert data, prompt format as follows:
 ```
 # Task
-    Create an organization structure table, table structure as follows: department name, department number, parent department, whether effective.
+   Create an organizational structure table with the following structure: department name, department number, parent department, is valid.
 # Requirements
- - Table name use t_admin_rms_zzjg,
- - Field requirements: string type uses 'varchar(255)', integer type uses 'int', float type uses 'float', date and time type uses 'datetime', boolean type uses 'boolean', text type uses 'text', large text type uses 'longtext', large integer type uses 'bigint', large float type uses 'double'.
- - Table header needs to add primary key field, serial number XH varchar(255)
- - Table last needs to add fixed fields: creator-CJR varchar(50), creation time-CJSJ datetime, modifier-XGR varchar(50), modification time-XGSJ datetime.
- - Field naming uses tool return content as field naming
- - Common fields need to add indexes
- - Each field needs to add comments, table comments need to be added
- - Generate 5 real data after creation
+ - Table name: t_admin_rms_zzjg
+ - Field requirements: string type uses 'varchar(255)', integer type uses 'int', float type uses 'float', date and time type uses 'datetime', boolean type uses 'boolean', text type uses 'text', large text type uses 'longtext', large integer type uses 'bigint', large float type uses 'double'
+ - Table header needs to include primary key field, serial number XH varchar(255)
+ - Table must include these fixed fields at the end: creator-CJR varchar(50), creation time-CJSJ datetime, modifier-XGR varchar(50), modification time-XGSJ datetime
+ - Field naming should use tool return content
+ - Common fields need indexes
+ - Each field needs comments, table needs comment
+ - Generate 5 real data records after creation
 ```
 
-#### Effect picture
-![image](https://github.com/user-attachments/assets/e95dc104-4e26-426a-acd4-d3b15ad654f5)
+2. Query data based on table comments, prompt as follows:
+```
+Query Zhang San's data from the user information table
+```
 
-![image](https://github.com/user-attachments/assets/618f610e-5188-4c40-aeaa-cfbe7b0762c3)
+3. Analyze slow SQL, prompt as follows:
+```
+select * from t_jcsjzx_hjkq_cd_xsz_sk xsz
+left join t_jcsjzx_hjkq_jcd jcd on jcd.cddm = xsz.cddm 
+Based on current index situation, review execution plan and provide optimization suggestions in markdown format, including table index status, execution details, and optimization recommendations
+```
 
-![image](https://github.com/user-attachments/assets/4c91c8d1-4a42-41f4-8fe2-e46df0f08daa)
-
-![image](https://github.com/user-attachments/assets/328a2cce-11ac-48f0-818a-1f1d231d7013)
-
-![image](https://github.com/user-attachments/assets/db265aaf-a3e9-41b4-bf7a-235ba34ed4cd)
-
-![image](https://github.com/user-attachments/assets/c67e2948-78af-4c8a-b1ff-6a7172bbb6f8)
-
-![image](https://github.com/user-attachments/assets/9f6215e6-51fc-4e32-9d21-3e19abfa4bc6)
-
-![image](https://github.com/user-attachments/assets/f10fc2b7-ac41-4f2c-a163-c7683bf2fabe)
-
-
-
-
+4. Analyze SQL deadlock issues, prompt as follows:
+```
+update t_admin_rms_zzjg set sfyx = '0' where xh = '1' is stuck, please analyze the cause
+```
