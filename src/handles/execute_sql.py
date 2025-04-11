@@ -4,7 +4,7 @@ from mcp import Tool
 from mcp.types import TextContent
 from mysql.connector import connect, Error
 
-from config import get_db_config
+from config import get_db_config, get_role_permissions
 from .base import BaseHandler
 
 
@@ -30,6 +30,20 @@ class ExecuteSQL(BaseHandler):
             }
         )
 
+    def check_sql_permission(self, sql: str, allowed_operations: list) -> bool:
+        """检查SQL语句是否有执行权限
+        
+        参数:
+            sql (str): SQL语句
+            allowed_operations (list): 允许的操作列表
+            
+        返回:
+            bool: 是否有权限执行
+        """
+        # 提取SQL语句的操作类型
+        operation = sql.strip().split()[0].upper()
+        return operation in allowed_operations
+
     async def run_tool(self, arguments: Dict[str, Any]) -> Sequence[TextContent]:
        """执行SQL查询语句
 
@@ -52,14 +66,22 @@ class ExecuteSQL(BaseHandler):
                raise ValueError("缺少查询语句")
 
            query = arguments["query"]
+           
+           # 获取角色权限
+           allowed_operations = get_role_permissions(config["role"])
 
-           with connect(**config) as conn:
+           with connect(**{k: v for k, v in config.items() if k != "role"}) as conn:
                with conn.cursor() as cursor:
                    statements = [stmt.strip() for stmt in query.split(';') if stmt.strip()]
                    results = []
 
                    for statement in statements:
                        try:
+                           # 检查权限
+                           if not self.check_sql_permission(statement, allowed_operations):
+                               results.append(f"权限不足: 当前角色 '{config['role']}' 无权执行该SQL操作")
+                               continue
+
                            cursor.execute(statement)
 
                            # 检查语句是否返回了结果集 (SELECT, SHOW, EXPLAIN, etc.)

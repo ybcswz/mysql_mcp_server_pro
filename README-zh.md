@@ -12,6 +12,13 @@ mcp_mysql_server_pro 不仅止于mysql的增删改查功能，还包含了数据
 - 支持 sql执行计划分析
 - 支持 中文字段转拼音.
 - 支持 锁表分析
+- 支持权限控制，只读（readonly）、读写（writer）、管理员（admin）
+    ```
+    "readonly": ["SELECT", "SHOW", "DESCRIBE", "EXPLAIN"],  # 只读权限
+    "writer": ["SELECT", "SHOW", "DESCRIBE", "EXPLAIN", "INSERT", "UPDATE", "DELETE"],  # 读写权限
+    "admin": ["SELECT", "SHOW", "DESCRIBE", "EXPLAIN", "INSERT", "UPDATE", "DELETE", 
+             "CREATE", "ALTER", "DROP", "TRUNCATE"]  # 管理员权限
+    ```
 
 ## 使用说明
 
@@ -43,6 +50,7 @@ MYSQL_PORT=3306
 MYSQL_USER=root
 MYSQL_PASSWORD=root
 MYSQL_DATABASE=a_llm
+MYSQL_ROLE=admin
 ```
 
 启动命令
@@ -78,7 +86,8 @@ mcp json 如下
           "MYSQL_PORT": "3306",
           "MYSQL_USER": "root",
           "MYSQL_PASSWORD": "root",
-          "MYSQL_DATABASE": "a_llm"
+          "MYSQL_DATABASE": "a_llm",
+          "MYSQL_ROLE": "admin"
        }
     }
   }

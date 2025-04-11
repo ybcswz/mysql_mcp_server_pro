@@ -12,6 +12,13 @@ mcp_mysql_server_pro is not just about MySQL CRUD operations, but also includes 
 - Supports SQL execution plan analysis
 - Supports Chinese field to pinyin conversion
 - Supports table lock analysis
+- Supports permission control with three roles: readonly, writer, and admin
+    ```
+    "readonly": ["SELECT", "SHOW", "DESCRIBE", "EXPLAIN"],  # Read-only permissions
+    "writer": ["SELECT", "SHOW", "DESCRIBE", "EXPLAIN", "INSERT", "UPDATE", "DELETE"],  # Read-write permissions
+    "admin": ["SELECT", "SHOW", "DESCRIBE", "EXPLAIN", "INSERT", "UPDATE", "DELETE", 
+             "CREATE", "ALTER", "DROP", "TRUNCATE"]  # Administrator permissions
+    ```
 
 ## Usage Instructions
 
@@ -43,6 +50,7 @@ MYSQL_PORT=3306
 MYSQL_USER=root
 MYSQL_PASSWORD=root
 MYSQL_DATABASE=a_llm
+MYSQL_ROLE=readonly  # Optional, default is 'readonly'. Available values: readonly, writer, admin
 ```
 
 Start commands:
@@ -78,7 +86,8 @@ mcp json as follows:
           "MYSQL_PORT": "3306",
           "MYSQL_USER": "root",
           "MYSQL_PASSWORD": "root",
-          "MYSQL_DATABASE": "a_llm"
+          "MYSQL_DATABASE": "a_llm",
+          "MYSQL_ROLE": "readonly"  # Optional, default is 'readonly'. Available values: readonly, writer, admin
        }
     }
   }
