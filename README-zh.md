@@ -78,7 +78,7 @@ mcp json 如下
           "--directory",
           "G:\\python\\mysql_mcp\\src",  # 这里需要替换为你的项目路径
           "run",
-          "operatemysql.py",
+          "server.py",
           "--stdio"
         ],
         "env": {
