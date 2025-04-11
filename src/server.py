@@ -10,23 +10,7 @@ from mcp.types import  Tool, TextContent
 from starlette.applications import Starlette
 from starlette.routing import Route, Mount
 
-from handles import (
-    ExecuteSQL,
-    GetChineseInitials,
-    GetTableIndex,
-    GetTableLock,
-    GetTableName,
-    GetTableDesc
-)
-
-# 初始化工具实例
-execute_sql = ExecuteSQL()
-get_chinese_initials = GetChineseInitials()
-get_table_index = GetTableIndex()
-get_table_desc = GetTableDesc()
-get_table_name = GetTableName()
-get_table_lock = GetTableLock()
-
+from handles.base import ToolRegistry
 
 # 初始化服务器
 app = Server("operateMysql")
@@ -34,25 +18,10 @@ app = Server("operateMysql")
 
 @app.list_tools()
 async def list_tools() -> list[Tool]:
-    """列出所有可用的MySQL操作工具
-    
-    Returns:
-        list[Tool]: 返回工具列表，包含:
-            - execute_sql: 执行SQL语句
-            - get_chinese_initials: 获取中文拼音首字母
-            - get_table_index: 获取表索引信息
-            - get_table_desc: 获取表结构描述
-            - get_table_name: 获取表名
-            - get_table_lock: 获取表锁信息
     """
-    return [
-        execute_sql.get_tool_description(),
-        get_chinese_initials.get_tool_description(),
-        get_table_index.get_tool_description(),
-        get_table_desc.get_tool_description(),
-        get_table_name.get_tool_description(),
-        get_table_lock.get_tool_description()
-    ]
+        列出所有可用的MySQL操作工具
+    """
+    return ToolRegistry.get_all_tools()
 
 @app.call_tool()
 async def call_tool(name: str, arguments: dict) -> Sequence[TextContent]:
@@ -68,20 +37,9 @@ async def call_tool(name: str, arguments: dict) -> Sequence[TextContent]:
     Raises:
         ValueError: 当指定了未知的工具名称时抛出异常
     """
-    if name == execute_sql.name:
-        return await execute_sql.run_tool(arguments)
-    elif name == get_table_index.name:
-        return await get_table_index.run_tool(arguments)
-    elif name == get_table_name.name:
-        return await get_table_name.run_tool(arguments)
-    elif name == get_table_lock.name:
-        return await get_table_lock.run_tool(arguments)
-    elif name == get_table_desc.name:
-        return await get_table_desc.run_tool(arguments)
-    elif name == get_chinese_initials.name:
-        return await get_chinese_initials.run_tool(arguments)
+    tool = ToolRegistry.get_tool(name)
 
-    raise ValueError(f"未知的工具: {name}")
+    return await tool.run_tool(arguments)
 
 
 async def run_stdio():
