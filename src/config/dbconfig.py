@@ -33,6 +33,33 @@ def get_db_config():
 
     return config
 
+
+def get_neo4j_config():
+    """从环境变量获取图数据库配置信息
+
+    返回:
+        dict: 包含数据库连接所需的配置信息
+        - neo4j_uri: 数据库主机地址
+        - neo4j_user: 数据库用户名
+        - neo4j_password: 数据库密码
+
+    异常:
+        ValueError: 当必需的配置信息缺失时抛出
+    """
+    # 加载.env文件
+    load_dotenv()
+
+    config = {
+        "neo4j_uri": os.getenv("NEO4J_URI", "bolt://localhost:7687"),
+        "neo4j_user": os.getenv("NEO4J_USER", "neo4j"),
+        "neo4j_password": os.getenv("NEO4J_PASSWORD", "password")
+    }
+
+    if not all([config["neo4j_uri"], config["neo4j_user"], config["neo4j_password"]]):
+        raise ValueError("缺少必需的数据库配置")
+
+    return config
+
 # 定义角色权限
 ROLE_PERMISSIONS = {
     "readonly": ["SELECT", "SHOW", "DESCRIBE", "EXPLAIN"],  # 只读权限

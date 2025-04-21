@@ -12,6 +12,11 @@ from starlette.routing import Route, Mount
 
 from handles.base import ToolRegistry
 
+from config.schema import init_neo4j_graph
+
+# 初始化NEO4j数据库
+init_neo4j_graph()
+
 # 初始化服务器
 app = Server("operateMysql")
 
