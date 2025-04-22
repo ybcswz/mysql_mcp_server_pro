@@ -7,7 +7,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 import mysql.connector
 from neo4j import GraphDatabase
 
-from src.config.dbconfig import get_neo4j_config
+from config.dbconfig import get_neo4j_config
 
 
 def init_neo4j_graph():
