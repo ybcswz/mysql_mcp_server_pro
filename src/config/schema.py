@@ -9,6 +9,8 @@ from neo4j import GraphDatabase
 
 from config.dbconfig import get_neo4j_config
 
+from wordprocess.chinese_wordnet import get_synonyms, is_semantically_similar
+
 
 def init_neo4j_graph():
     """
@@ -45,7 +47,7 @@ def extract_mysql_schema():
 
     # 获取字段注释
     cursor.execute("""
-        SELECT TABLE_NAME, COLUMN_NAME, COLUMN_COMMENT 
+        SELECT TABLE_NAME, COLUMN_NAME, COLUMN_COMMENT, DATA_TYPE 
         FROM INFORMATION_SCHEMA.COLUMNS 
         WHERE TABLE_SCHEMA = %s AND COLUMN_NAME NOT IN ('CREATE_USER','CREATE_TIME','UPDATE_USER','UPDATE_TIME')
     """, (mysql_config['database'],))
@@ -102,14 +104,15 @@ def build_neo4j_graph(tables, columns, foreign_keys):
             table_name = column['TABLE_NAME']
             field_name = column['COLUMN_NAME']
             field_comment = column['COLUMN_COMMENT']
+            data_type = column['DATA_TYPE']
 
             session.run("""
                 MERGE (field:Field {name: $field_name})
-                ON CREATE SET field.comment = $field_comment
+                ON CREATE SET field.comment = $field_comment, field.data_type = $data_type
                 WITH field
                 MATCH (table:Table {name: $table_name})
                 MERGE (table)-[:HAS_FIELD]->(field)
-            """, table_name=table_name, field_name=field_name, field_comment=field_comment)
+            """, table_name=table_name, field_name=field_name, field_comment=field_comment, data_type=data_type)
 
         # 创建外键关系
         for fk in foreign_keys:
@@ -179,7 +182,11 @@ def extract_keywords(query):
         for keyword in keywords:
             for term, term_type, comment in schema_terms:
                 # 匹配表名/字段名或注释
-                if keyword.lower() in term.lower() or keyword.lower() in comment.lower():
+                keyword_synonyms = get_synonyms(keyword.lower())
+                if (keyword.lower() in term.lower() or
+                        any(keyword.lower() == word.strip().lower() for word in comment.split(',')) or
+                        any(word.strip().lower() in keyword_synonyms for word in comment.split(',')) or
+                        any(is_semantically_similar(keyword, word.strip()) for word in comment.split(','))):
                     matched_terms.append((term, term_type, comment))
 
         if matched_terms:
@@ -223,7 +230,7 @@ def generate_table_info(keywords):
                 toLower(f.name) CONTAINS toLower(keyword) OR 
                 toLower(t.comment) CONTAINS toLower(keyword) OR 
                 toLower(f.comment) CONTAINS toLower(keyword))
-            RETURN DISTINCT t.name AS table_name, t.comment AS table_comment, 
+            RETURN DISTINCT t.name AS table_name, t.comment AS table_comment, f.data_type AS data_type,
                    f.name AS field_name, f.comment AS field_comment
             ORDER BY t.name, f.name
         """, keywords=keywords)
@@ -234,6 +241,7 @@ def generate_table_info(keywords):
             table_comment = record["table_comment"] or ""
             field_name = record["field_name"]
             field_comment = record["field_comment"] or ""
+            field_type = record["data_type"]
 
             # 如果切换到新的表，添加表信息
             if table_name != current_table:
@@ -241,7 +249,7 @@ def generate_table_info(keywords):
                 current_table = table_name
 
             # 添加字段信息
-            table_info += f"  - {field_name} ({field_comment})\n"
+            table_info += f"  - {field_name} ({field_type}, {field_comment})\n"
 
         # 查询相关外键关系
         fk_result = session.run("""

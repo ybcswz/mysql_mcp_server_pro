@@ -9,8 +9,8 @@ async def main():
             await session.initialize()
 
             res = await session.call_tool(
-                'get_schema', {
-   'user_question': '查询车联网数据'})
+                'execute_sql', {
+   'query': 'select 1;',})
             print(res)
 
 

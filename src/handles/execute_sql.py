@@ -66,6 +66,9 @@ class ExecuteSQL(BaseHandler):
                raise ValueError("缺少查询语句")
 
            query = arguments["query"]
+
+           print('SQL语句：')
+           print(query)
            
            # 获取角色权限
            allowed_operations = get_role_permissions(config["role"])
